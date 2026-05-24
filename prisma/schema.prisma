@@ -1,0 +1,238 @@
+// Nudge: AI-powered budgeting app with Max as your money coach.
+// SQLite locally; switch the provider for Postgres in production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String         @id @default(cuid())
+  name              String
+  email             String         @unique
+  age               Int
+  plan              String         @default("free") // free | plus | premium
+  monthlyIncome     Float          @default(0)
+  currentSavings    Float          @default(0)
+  currentStreak     Int            @default(0)
+  longestStreak     Int            @default(0)
+  xp                Int            @default(0)
+  memberSince       DateTime       @default(now())
+  lastCheckInAt     DateTime?
+  primaryGoalId     String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  accounts          Account[]
+  transactions      Transaction[]
+  goals             Goal[]
+  debts             Debt[]
+  subscriptions     Subscription[]
+  bills             Bill[]
+  investments       Investment[]
+  paychecks         Paycheck[]
+  refunds           Refund[]
+  badges            UserBadge[]
+  chatMessages      ChatMessage[]
+  reports           WeeklyReport[]
+  streakEvents      StreakEvent[]
+}
+
+model Account {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  type         String        // checking | savings | credit | brokerage
+  institution  String
+  balance      Float          @default(0)
+  last4        String?
+  createdAt    DateTime       @default(now())
+
+  transactions Transaction[]
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId   String?
+  account     Account? @relation(fields: [accountId], references: [id])
+  merchant    String
+  category    String   // Food, Dining, Transport, Rent, Utilities, Entertainment, Shopping, Health, Subscriptions, Income, Other
+  amount      Float    // negative for spending, positive for income
+  date        DateTime
+  note        String?
+  emotional   Boolean  @default(false) // flagged as potential emotional/impulse spend
+  createdAt   DateTime @default(now())
+
+  @@index([userId, date])
+  @@index([category])
+}
+
+model Goal {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  type          String   // emergency | vacation | home | car | wedding | invest | fyou | debt | custom
+  targetAmount  Float
+  currentAmount Float    @default(0)
+  deadline      DateTime?
+  monthlyTarget Float    @default(0)
+  weeklyTarget  Float    @default(0)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Debt {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String   // creditor
+  balance         Float
+  apr             Float    // annual interest rate
+  minPayment      Float
+  type            String   // credit_card | student_loan | auto | personal | medical | other
+  createdAt       DateTime @default(now())
+  payments        DebtPayment[]
+}
+
+model DebtPayment {
+  id        String   @id @default(cuid())
+  debtId    String
+  debt      Debt     @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  amount    Float
+  date      DateTime @default(now())
+}
+
+model Subscription {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  amount      Float
+  frequency   String   // monthly | yearly | weekly
+  category    String   // streaming | software | fitness | news | other
+  lastCharged DateTime?
+  usedRecently Boolean @default(true)
+  cancelled   Boolean  @default(false)
+  cancelledAt DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model Bill {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String   // e.g. "Verizon Wireless"
+  category     String   // internet | phone | cable | insurance | utility
+  monthlyCost  Float
+  negotiable   Boolean  @default(true)
+  lastNegotiatedAt DateTime?
+  savedPerMonth Float   @default(0)
+  createdAt    DateTime @default(now())
+}
+
+model Investment {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticker        String
+  name          String
+  shares        Float
+  costBasis     Float    // total $ invested
+  currentValue  Float    // current market value
+  accountName   String   // brokerage account name
+  createdAt     DateTime @default(now())
+}
+
+model Paycheck {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount       Float
+  date         DateTime @default(now())
+  needsPct     Float    @default(0.5)
+  wantsPct     Float    @default(0.3)
+  goalsPct     Float    @default(0.2)
+  autoSaved    Float    @default(0)
+  appliedToDebt Float   @default(0)
+}
+
+model Refund {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchant    String
+  item        String
+  originalPrice Float
+  newPrice    Float
+  amount      Float
+  status      String   @default("found") // found | claimed | received
+  foundAt     DateTime @default(now())
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  code        String   @unique // sub_slayer, goal_getter, ice_cold...
+  name        String
+  emoji       String
+  description String
+  userBadges  UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId   String
+  badge     Badge    @relation(fields: [badgeId], references: [id])
+  earnedAt  DateTime @default(now())
+
+  @@unique([userId, badgeId])
+}
+
+model StreakEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // checkin | under_budget | weekly_goal | monthly_goal
+  date      DateTime @default(now())
+  xp        Int      @default(0)
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   // user | assistant | system
+  content   String
+  sessionType String? // daily_checkin | weekly_report | goal | debt | spend | stress | paycheck | general
+  upsellTriggered Boolean @default(false)
+  upsellFeature   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model WeeklyReport {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekStart       DateTime
+  income          Float
+  totalSpent      Float
+  totalSaved      Float
+  savingsRate     Float
+  topCategories   String   // JSON array of {category, amount, change}
+  anomalies       String   // JSON array of strings
+  insight         String
+  actionItem      String
+  createdAt       DateTime @default(now())
+}
