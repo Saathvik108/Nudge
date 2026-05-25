@@ -11,8 +11,9 @@ import { ProgressBar } from "@/components/ProgressBar";
 export default async function DebtsPage({
   searchParams,
 }: {
-  searchParams: { strategy?: string; extra?: string };
+  searchParams: Promise<{ strategy?: string; extra?: string }>;
 }) {
+  const sp = await searchParams;
   const user = await getCurrentUser();
   const plan = user.plan as "free" | "plus" | "premium";
   const debts = await prisma.debt.findMany({ where: { userId: user.id } });
@@ -20,8 +21,8 @@ export default async function DebtsPage({
   const minSum = debts.reduce((s, d) => s + d.minPayment, 0);
 
   const strategy: "avalanche" | "snowball" =
-    searchParams.strategy === "snowball" ? "snowball" : "avalanche";
-  const extra = Math.max(0, Number(searchParams.extra ?? 100));
+    sp.strategy === "snowball" ? "snowball" : "avalanche";
+  const extra = Math.max(0, Number(sp.extra ?? 100));
 
   const canPlan = canAccess(plan, "debt_destroyer");
   const payoff = canPlan

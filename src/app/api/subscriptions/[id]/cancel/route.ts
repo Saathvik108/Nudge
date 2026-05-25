@@ -3,13 +3,14 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
 import { canAccess } from "@/lib/plan";
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await getCurrentUser();
   if (!canAccess(user.plan as "free" | "plus" | "premium", "subscription_killer")) {
     return NextResponse.json({ error: "Upgrade to Plus." }, { status: 402 });
   }
   const sub = await prisma.subscription.findFirst({
-    where: { id: params.id, userId: user.id },
+    where: { id, userId: user.id },
   });
   if (!sub) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
