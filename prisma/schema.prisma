@@ -1,5 +1,8 @@
 // Nudge: AI-powered budgeting app with Max as your money coach.
-// Postgres in all environments (serverless-friendly for Vercel).
+// Self-contained SQLite: a pre-seeded database is embedded in the app
+// (src/lib/seed-blob.ts) and unpacked at runtime, so no external database
+// or env vars are needed to deploy. DATABASE_URL is set automatically by
+// src/lib/db.ts (override it to point at your own database if you want).
 
 generator client {
   provider      = "prisma-client-js"
@@ -7,7 +10,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
