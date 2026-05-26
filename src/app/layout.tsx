@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     "No spreadsheets. No complicated budgets. Just simple, automatic money management that works in the background of your life.",
 };
 
+// Every route is per-user and DB-backed; never statically prerender.
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({
   children,
 }: {

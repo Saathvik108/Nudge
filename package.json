@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "rm -f prisma/dev.db && prisma db push && tsx prisma/seed.ts",
+    "db:reset": "prisma db push --force-reset --accept-data-loss && tsx prisma/seed.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
