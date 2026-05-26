@@ -10,7 +10,10 @@ import { SEED_DB_GZ_B64 } from "./seed-blob";
 // data resets when the instance recycles — fine for a demo. Setting
 // DATABASE_URL explicitly (e.g. a Postgres URL) overrides all of this.
 function ensureDatabaseUrl() {
-  if (process.env.DATABASE_URL) return;
+  // The schema's provider is sqlite, so only a `file:` URL is usable. Respect
+  // such an override; otherwise ignore whatever is set (e.g. a leftover or
+  // auto-injected Postgres URL on the host) and fall back to the embedded DB.
+  if (process.env.DATABASE_URL?.startsWith("file:")) return;
 
   const onServerless = Boolean(process.env.VERCEL || process.env.AWS_REGION);
   const target = onServerless
